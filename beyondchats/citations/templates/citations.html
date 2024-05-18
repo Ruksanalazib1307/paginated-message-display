@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Message Display with Pagination</title>
+    <style>
+        #messages { margin-bottom: 20px; }
+        .message { border: 1px solid #ccc; padding: 10px; margin-bottom: 10px; }
+        .message p { margin: 5px 0; }
+        .source { margin-left: 20px; }
+        .source p { margin: 2px 0; }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f9f9f9;
+            margin: 0;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        
+        #messages {
+            background-color: #fff;
+            border-radius: 10px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+        }
+        
+        .message {
+            background-color: #f2f2f2;
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .message p {
+            margin: 10px 0;
+        }
+        
+        .message p strong {
+            font-weight: bold;
+        }
+        
+        .source {
+            margin-left: 30px;
+            border-left: 2px solid #ccc;
+            padding-left: 10px;
+        }
+        
+        .source p {
+            margin: 5px 0;
+        }
+        
+        button {
+            background-color: #007bff;
+            border: none;
+            color: white;
+            padding: 12px 24px;
+            text-align: center;
+            text-decoration: none;
+            display: inline-block;
+            font-size: 16px;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+            margin-right: 10px;
+        }
+        
+        button:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+        
+        button:hover {
+            background-color: #0056b3;
+        }
+        
+        button:focus {
+            outline: none;
+        }
+        
+        button:active {
+            background-color: #004cae;
+        }
+        
+    </style>
+</head>
+<body>
+    <div id="messages"></div>
+    <div>
+        <button id="prev">Previous</button>
+        <button id="next">Next</button>
+    </div>
+
+    <script>
+        async function fetchData(pageUrl) {
+            try {
+                let response = await fetch(pageUrl);
+                let data = await response.json();
+                if (data.status === "success") {
+                    displayMessages(data.data.data);
+                    setupPagination(data.data);
+                } else {
+                    console.error('Error:', data.message);
+                }
+            } catch (error) {
+                console.error('Error fetching data:', error);
+            }
+        }
+
+        function displayMessages(messages) {
+            const messagesDiv = document.getElementById('messages');
+            messagesDiv.innerHTML = ''; // Clear previous messages
+        
+            if (messages.length === 0) {
+                messagesDiv.innerHTML = '<p>No messages to display.</p>'; // Handle no messages case
+                return;
+            }
+        
+            messages.forEach(message => {
+                const messageDiv = document.createElement('div');
+                messageDiv.classList.add('message');
+                messageDiv.innerHTML = `
+                    <p><strong>ID:</strong> ${message.id}</p>
+                    <p><strong>Response:</strong> ${message.response}</p>
+                    <p><strong>Links:</strong></p>
+                    ${message.source && Array.isArray(message.source) ? 
+                        message.source.map(source => `
+                            <div class="source">
+                                ${source.link ? `<a href="${source.link}" target="_blank">Link</a>` : ''}
+                            </div>
+                        `).join('') : '<p>No links available.</p>'
+                    }
+                `;
+                messagesDiv.appendChild(messageDiv);
+            });
+        }
+        
+
+        function setupPagination(data) {
+            const prevButton = document.getElementById('prev');
+            const nextButton = document.getElementById('next');
+
+            if (data.current_page > 1) {
+                prevButton.setAttribute('data-url', `https://devapi.beyondchats.com/api/get_message_with_sources?page=${data.current_page - 1}`);
+                prevButton.disabled = false;
+            } else {
+                prevButton.removeAttribute('data-url');
+                prevButton.disabled = true;
+            }
+
+            if (data.current_page < data.last_page) {
+                nextButton.setAttribute('data-url', `https://devapi.beyondchats.com/api/get_message_with_sources?page=${data.current_page + 1}`);
+                nextButton.disabled = false;
+            } else {
+                nextButton.removeAttribute('data-url');
+                nextButton.disabled = true;
+            }
+        }
+
+        document.getElementById('prev').addEventListener('click', function() {
+            let url = this.getAttribute('data-url');
+            if (url) fetchData(url);
+        });
+
+        document.getElementById('next').addEventListener('click', function() {
+            let url = this.getAttribute('data-url');
+            if (url) fetchData(url);
+        });
+
+        // Initial fetch
+        fetchData('https://devapi.beyondchats.com/api/get_message_with_sources?page=1');
+    </script>
+</body>
+</html>
